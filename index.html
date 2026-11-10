@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <!-- Metadata -->
+    <meta charset="utf-8">
+    <!-- Judul pada tab browser -->
+    <title>Latihan Web GIS</title>
+    <!-- Leaflet CSS Library -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css">
+    <style>
+        html,
+        body,
+        #map {
+            height: 100%;
+            width: 100%;
+            margin: 0px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Leaflet JavaScript Library -->
+    <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"></script>
+    <div id="map"></div>
+    <script>
+        /* Initial Map */
+        var map = L.map('map').setView([-7.62, 110.80], 11); //lat, long, zoom
+
+        /* Tile Basemap */
+        var basemap1 = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: 'Tiles &copy; Esri'
+        });
+
+        var basemap2 = L.tileLayer('https://{s}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            maxZoom: 20,
+            subdomains: ['mt0', 'mt1', 'mt2', 'mt3'],
+            attribution: 'Map data &copy; Google'
+        });
+
+        basemap1.addTo(map);
+
+        /* Layer Titik Perumahan (data dari database) */
+        var perumahan = L.geoJSON(null, {
+            pointToLayer: function (feature, latlng) {
+                return L.circleMarker(latlng, {
+                    radius: 8,
+                    fillColor: "#C0392B",
+                    weight: 1.5,
+                    opacity: 1,
+                    fillOpacity: 0.9
+                });
+            },
+            onEachFeature: function (feature, layer) {
+                layer.bindPopup(
+                    "<b>" + feature.properties.namobj + "</b><br>" +
+                    "Kecamatan: " + feature.properties.wadmkc
+                );
+            }
+        });
+        perumahan.addTo(map);
+
+        /* Control Layer */
+        var baseMaps = {
+            "Esri Imagery": basemap1,
+            "Google Street": basemap2
+        };
+
+        var overlayMaps = {
+            "Titik Perumahan": perumahan
+        };
+
+        L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+
+        /* Scale Bar */
+        L.control.scale({
+            maxWidth: 150, position: 'bottomright'
+        }).addTo(map);
+
+        /* Ambil data titik dari database (data.php) */
+        fetch('data.php')
+            .then(function (response) { return response.json(); })
+            .then(function (geojson) {
+                perumahan.addData(geojson);
+                map.fitBounds(perumahan.getBounds()); // zoom otomatis ke semua titik
+            })
+            .catch(function (err) {
+                console.error("Gagal memuat data:", err);
+            });
+    </script>
+</body>
+
+</html>
